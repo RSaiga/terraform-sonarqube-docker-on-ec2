@@ -64,7 +64,6 @@ resource "aws_security_group_rule" "ssh" {
   protocol          = "tcp"
 }
 
-# インバウンドルール(http)
 resource "aws_security_group_rule" "http" {
   security_group_id = aws_security_group.sonarqube-security-group.id
   type              = "ingress"
@@ -74,7 +73,6 @@ resource "aws_security_group_rule" "http" {
   protocol          = "tcp"
 }
 
-# アウトバウンドルール(全開放)
 resource "aws_security_group_rule" "out_all" {
   security_group_id = aws_security_group.sonarqube-security-group.id
   type              = "egress"
