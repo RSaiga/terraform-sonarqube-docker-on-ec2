@@ -1,19 +1,4 @@
 #!/bin/bash
-#set -eo pipefail
-#DEVICE=${local.block_device_path}
-#DEST=${var.persistent_volume_mount_path}
-#devpath=$(readlink -f $DEVICE)
-#if [[ $(file -s $devpath) != *ext4* && -b $devpath ]]; then
-#    mkfs -t ext4 $devpath
-#fi
-#if ! egrep "^$devpath" /etc/fstab; then
-#  echo "$devpath $DEST ext4 defaults,nofail,noatime,nodiratime,barrier=0,data=writeback 0 2" | tee -a /etc/fstab > /dev/null
-#fi
-#mkdir -p $DEST
-#mount $DEST
-#chown ec2-user:ec2-user $DEST
-#chmod 0755 $DEST
-
 yum update -y
 amazon-linux-extras install docker
 systemctl start docker.service
@@ -22,9 +7,53 @@ chkconfig docker on
 yum install -y python3-pip
 python3 -m pip install docker-compose
 
-#cat > $DEST/docker-compose.yml <<-TEMPLATE
 cat > ./docker-compose.yml <<-TEMPLATE
-${var.docker_compose}
+version: "3"
+
+services:
+  sonarqube:
+    container_name: sonarqube
+    image: sonarqube:latest
+    restart: always
+    ports:
+      - "80:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonar
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+    volumes:
+      - sonarqube-conf:/opt/sonarqube/conf
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-extensions:/opt/sonarqube/extensions
+    depends_on:
+      - sonarqube-db
+    networks:
+      - sonarqube
+
+  sonarqube-db:
+    container_name: sonarqube-db
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonar
+    volumes:
+      - postgresql-root:/var/lib/postgresql
+      - postgresql-data:/var/lib/postgresql/data
+    networks:
+      - sonarqube
+
+networks:
+  sonarqube:
+    driver: bridge
+
+volumes:
+  sonarqube-conf:
+  sonarqube-data:
+  sonarqube-extensions:
+  postgresql-root:
+  postgresql-data:
 TEMPLATE
 cat > /etc/systemd/system/custom_service.service <<-TEMPLATE
 [Unit]
@@ -38,4 +67,6 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 TEMPLATE
+
+sudo sysctl -w vm.max_map_count=262144
 systemctl start custom_service

@@ -1,28 +1,24 @@
-# ---------------------------
-# EC2 Key pair
-# ---------------------------
 variable "key_name" {
   default = "sonarqube-keypair"
 }
 
 resource "tls_private_key" "sonarqube_private_key" {
-  algorithm = "RSA"
-  rsa_bits  = 2048
+  algorithm = "ED25519"
 }
 
 locals {
-  public_key_file  = "./${var.key_name}.id_rsa.pub"
-  private_key_file = "./${var.key_name}.id_rsa"
+  public_key_file  = "./${var.key_name}.id_ed25519.pub"
+  private_key_file = "./${var.key_name}.id_ed25519"
 }
 
 resource "local_file" "sonarqube_private_key_pem" {
   filename = local.private_key_file
-  content  = tls_private_key.sonarqube_private_key.private_key_pem
+  content  = tls_private_key.sonarqube_private_key.private_key_openssh
 }
 
 resource "aws_key_pair" "sonarqube_keypair" {
   key_name   = var.key_name
-  public_key = tls_private_key.sonarqube_private_key.public_key_openssh
+  public_key = trimspace(tls_private_key.sonarqube_private_key.public_key_openssh)
 }
 
 data "aws_ssm_parameter" "amzn2_latest_ami" {

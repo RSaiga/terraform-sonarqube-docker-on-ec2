@@ -68,8 +68,8 @@ resource "aws_security_group_rule" "http" {
   security_group_id = aws_security_group.sonarqube-security-group.id
   type              = "ingress"
   cidr_blocks       = ["0.0.0.0/0"]
-  from_port         = 8080
-  to_port           = 8080
+  from_port         = 80
+  to_port           = 80
   protocol          = "tcp"
 }
 
